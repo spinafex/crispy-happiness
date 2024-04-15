@@ -1,0 +1,69 @@
+from google.colab import files
+import numpy as np
+import pandas as pd
+import networkx as nx
+import matplotlib.pyplot as plt
+
+# Assuming the uploaded file is named 'data.csv'
+#df = pd.read_csv('Country Complexity Rankings 1995 - 2021.csv', index_col=0)  # Read CSV with labels as index
+df = pd.read_csv('WUI by groupings.csv', index_col=0)
+#Read the uploaded CSV file into a pandas DataFrame
+#df = pd.read_csv(list(uploaded.keys())[0])
+
+# Get the labels (assuming they are in the first column)
+labels = df.columns[1:]
+
+# Get the features (assuming they are in the first row)
+#features = df.iloc[0, 1:]
+
+# Select the data part of the DataFrame (excluding labels and features)
+data = df.iloc[1:, 1:]
+
+# Handle null and zero values (choose a method)
+# Option 1: Drop rows with null values
+data = data.dropna()
+
+# Option 2: Impute missing values with a strategy (e.g., mean)
+#data = data.fillna(data.mean())
+
+# Option 3: Consider alternative correlation methods that handle nulls (e.g., Spearman)
+# correlation_matrix = data.corr(method='spearman')  # Example using Spearman correlation
+
+# Choose the method that best suits your data and analysis goals.
+
+# Calculate pairwise correlations
+correlation_matrix = df.corr(method='pearson')
+
+# Define correlation threshold (adjust as needed)
+correlation_threshold = 0.5
+
+# Create a network graph
+G = nx.Graph()
+
+#Add nodes (feature labels)
+G.add_nodes_from(labels)
+
+# Create a dictionary to store node sizes (initially 1 for all)
+node_sizes = {node: 1 for node in labels}
+#print(node_sizes)
+
+# Add edges with weights based on correlations
+# Add edges based on correlations
+for i in range(len(correlation_matrix.columns)):
+  for j in range(i+1, len(correlation_matrix.columns)):
+    if i < len(labels) and j < len(labels):
+      correlation = correlation_matrix.iloc[i, j]
+      if abs(correlation) >= correlation_threshold and not (pd.isna(correlation) or correlation == 0):  # Check for NaN, 0, and correlation threshold
+        G.add_edge(labels[i], labels[j])
+
+
+# Apply Fruchterman-Reingold layout
+pos = nx.fruchterman_reingold_layout(G)
+
+# Draw the network
+nx.draw(G, pos, font_size=5, with_labels=True, node_color='lightblue', edge_color='black')
+
+# Display the plot
+plt.title("Correlation Network")
+plt.show()
+
