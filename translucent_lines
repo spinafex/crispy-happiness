@@ -1,0 +1,14 @@
+import numpy as np
+import networkx as nx
+
+
+A = np.array([[2, 1, 5],[8, 4, 3],[5, 0, 7]])
+G = nx.DiGraph(A)
+layout = nx.spring_layout(G)
+
+for edge in G.edges(data="weight"):
+    nx.draw_networkx_edges(G, layout, edgelist=[edge], alpha = (edge[1]/10))
+
+nx.draw_networkx_nodes(G, layout)
+nx.draw_networkx_labels(G,layout)
+plt.show()
