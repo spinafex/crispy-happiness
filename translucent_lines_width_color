@@ -1,0 +1,47 @@
+import numpy as np
+import networkx as nx
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# Parameters
+n = 10  # Number of nodes
+
+# Generate a random correlation matrix
+np.random.seed(0)
+A = np.random.rand(n, n)
+A = (A + A.T) / 2  # Make the matrix symmetric
+np.fill_diagonal(A, 1)  # Correlation of an item with itself is 1
+
+# Create a DataFrame from the correlation matrix for easier manipulation
+df_corr = pd.DataFrame(A)
+
+# Create graph from correlation matrix
+G = nx.Graph()
+for i in range(n):
+    for j in range(i + 1, n):
+        # Add an edge only if absolute correlation is strong enough
+        if abs(df_corr.iloc[i, j]) > 0.3:
+            G.add_edge(i, j, weight=df_corr.iloc[i, j])
+
+# NetworkX: Draw the graph
+pos = nx.spring_layout(G, seed=42)  # positions for all nodes
+
+# edges
+edges = G.edges(data=True)
+colors = [item[2]['weight'] for item in edges]
+widths = [4 * abs(item[2]['weight']) for item in edges]
+
+nx.draw_networkx_nodes(G, pos, node_size=700)
+nx.draw_networkx_labels(G, pos)
+nx.draw_networkx_edges(G, pos, edge_color=colors, width=widths,
+                       edge_cmap=plt.cm.viridis, alpha=0.5)
+
+# Set the color bar
+sm = plt.cm.ScalarMappable(cmap=plt.cm.viridis, norm=plt.Normalize(vmin=min(colors), vmax=max(colors)))
+sm.set_array([])
+cbar = plt.colorbar(sm)
+cbar.set_label('Correlation Strength')
+
+plt.title('Fruchterman-Reingold Layout with Correlation Strengths')
+plt.axis('off')  # Turn off the axis
+plt.show()
