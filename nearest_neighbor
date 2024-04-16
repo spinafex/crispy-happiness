@@ -1,0 +1,33 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import norm, kde
+from sklearn.neighbors import KernelDensity, NearestNeighbors
+
+# Generate 25 data points from a normal distribution with std 2 around 7
+data = norm.rvs(loc=7, scale=2, size=25)
+
+# Kernel Density Estimation (KDE) with bandwidth selection
+kde = KernelDensity(bandwidth=1.0).fit(data[:, np.newaxis])  # Reshape for column vector
+kde_density = kde.score_samples(data[:, np.newaxis])
+
+# Nearest Neighbors routine
+nbrs = NearestNeighbors(n_neighbors=5).fit(data[:, np.newaxis])
+distances, indices = nbrs.kneighbors(data[:, np.newaxis])
+
+# Plot the data with KDE and nearest neighbor information
+plt.figure(figsize=(5, 3))
+plt.plot(data, label='Data')
+plt.plot(data, kde_density, color='red', label='KDE')
+
+# Plot nearest neighbor lines (optional)
+for i in range(len(data)):
+    for neighbor_index in indices[i]:
+        neighbor_data = data[neighbor_index]
+        plt.plot([data[i], neighbor_data], [kde_density[i], kde_density[neighbor_index]], 'g-', alpha=0.2, label='Nearest Neighbor')  # Green lines for neighbors with explicit label
+
+plt.xlabel('Data Value')
+plt.ylabel('Density (KDE) or Distance (Neighbors)')
+plt.legend()
+plt.title('Data, KDE, and Nearest Neighbors (k=5)')
+plt.grid(True)
+plt.show()
