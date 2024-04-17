@@ -1,0 +1,65 @@
+import pandas as pd
+import numpy as np
+import networkx as nx
+import matplotlib.pyplot as plt
+
+df = pd.read_csv('wui.csv')
+# Get the labels (assuming they are in the first column)
+labels = df.columns[1:]
+
+# Get the features (assuming they are in the first row)
+features = df.iloc[0, 1:]
+
+# Select the data part of the DataFrame (excluding labels and features)
+data = df.iloc[1:, 1:]
+
+data = data.dropna()
+
+# Calculate the correlation matrix
+correlation_matrix = data.corr()
+
+# Threshold value
+x = 0.1 # lower bound
+y = 0.25 # upper bound
+
+# Create a graph from the correlation matrix
+G = nx.Graph()
+for i in range(len(correlation_matrix.columns)):
+    for j in range(i + 1, len(correlation_matrix.columns)):
+        weight = correlation_matrix.iloc[i, j]
+        if x <= abs(weight) <= y:  # Consider correlations within upper and lower bounds only
+            G.add_edge(labels[i], labels[j], weight=weight)
+
+# Check if the graph has any edges
+if not G.edges:
+    print("No edges in the graph, possibly due to a high threshold. Lower the threshold or adjust the data.")
+else:
+    # Adjust layout settings here
+    pos = nx.fruchterman_reingold_layout(G, seed=42, scale=2, iterations=50, k=1) # Adjust 'scale', 'iterations', and 'k'
+    plt.figure(figsize=(10,10))
+
+    # Draw the network
+    edges = G.edges(data=True)
+    colors = [item[2]['weight'] for item in edges]
+    widths = [4 * abs(item[2]['weight']) for item in edges]
+    alphas = [abs(item[2]['weight']) for item in edges]  # Translucency based on correlation strength
+
+    # Drawing nodes and labels
+    nx.draw_networkx_nodes(G, pos, node_color='skyblue', node_size=700)
+    nx.draw_networkx_labels(G, pos, font_size=8)  # Adjust font size here
+
+    # Drawing edges with varying colors, widths, and alphas
+    for edge, color, width, alpha in zip(edges, colors, widths, alphas):
+        nx.draw_networkx_edges(G, pos, edgelist=[edge], width=width,
+                               edge_color=plt.cm.viridis((color + 1) / 2),
+                               alpha=alpha)
+
+    # Set color map based on correlation strength
+    sm = plt.cm.ScalarMappable(cmap=plt.cm.viridis, norm=plt.Normalize(vmin=-1, vmax=1))
+    sm.set_array([])
+    cbar = plt.colorbar(sm)
+    cbar.set_label('Correlation Strength')
+
+    plt.title('World Uncertainty Index Correlation')
+    plt.axis('off')
+    plt.show()
