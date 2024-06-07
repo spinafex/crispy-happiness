@@ -1,0 +1,47 @@
+def calculate_spread_and_zscore(pairs, data):
+    spread_results = []
+    zscore_results = []
+    optimal_entries = []
+    optimal_exits = []
+
+    for pair in pairs:
+        asset1_name, asset2_name, pvalue = pair
+        if asset1_name not in data.columns or asset2_name not in data.columns:
+            raise ValueError(f"Asset names {asset1_name} or {asset2_name} not found in data columns.")
+
+        asset1 = data[asset1_name]
+        asset2 = data[asset2_name]
+
+        asset1, asset2 = asset1.align(asset2, join='inner')
+        combined = pd.DataFrame({'asset1': asset1.ffill(), 'asset2': asset2.ffill()}).dropna()
+
+        if combined.empty:
+            continue
+
+        asset1_cleaned = combined['asset1']
+        asset2_cleaned = combined['asset2']
+
+        # Perform linear regression to find the hedge ratio
+        X = sm.add_constant(asset2_cleaned)
+        model = sm.OLS(asset1_cleaned, X).fit()
+        hedge_ratio = model.params[1]
+
+        # Calculate the spread using the hedge ratio
+        spread = asset1_cleaned - hedge_ratio * asset2_cleaned
+        spread_mean = spread.mean()
+        spread_std = spread.std()
+
+        optimal_entry = (spread_std * 2.0)
+        optimal_exit = (spread_std * 0.5)
+
+        if spread_std == 0:
+            zscore = pd.Series([0] * len(spread), index=spread.index)
+        else:
+            zscore = (spread - spread_mean) / spread_std
+
+        spread_results.append(spread)
+        zscore_results.append(zscore)
+        optimal_entries.append(optimal_entry)
+        optimal_exits.append(optimal_exit)
+
+    return spread_results, zscore_results, optimal_entries, optimal_exits
